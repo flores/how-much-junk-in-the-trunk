@@ -51,8 +51,6 @@ print "</font></p>\n";
 		
 print "<center>\n";
 
-#&printForm($q);
-
 if ($ENV{'REQUEST_METHOD'} eq 'GET') {
 
         undef($compound);
@@ -566,28 +564,29 @@ if ($ENV{'REQUEST_METHOD'} eq 'GET') {
 			
 			$image=$db->selectrow_array("SELECT last_insert_rowid() FROM graphs");
 			
-			open(IMG,">images/con_v_time.$image") or die $!;
+			open(IMG,">images/con_v_time.$image.png") or die $!;
 			binmode IMG;
 			print IMG $mygraph->plot(\@data)->png;
 			close IMG;
+
+# and create a csv of it
+			 open (CSV, ">", "images/con_v_time.$image.csv") or die $!;
+# CSV header
+                        print CSV "day,no_uptake,25%_uptake,50%_uptake,75%_uptake," . $uptake_known . "_uptake,dose_ppm,food_ppm,pwc%\n";
+
+                        for $ref ( 0 .. $#{$data[0]} )
+                        {
+                                print CSV "$data[0][$ref],$data[1][$ref],$data[2][$ref],$data[3][$ref],$data[4][$ref],$data[5][$ref],$doseday[$ref],$food_ppm,$pwcday[$ref]\n";
+                        }
+
+                        close CSV;
 		}
-		print "<img src='images/con_v_time.$image'><br />\n";
+		print "<img src='images/con_v_time.$image.png'><br />\n";
 		print "<br />\n<br />\n";
 
 # Are we pushing it into a CSV, too?
 		if ($csv =~ /true/)
 		{
-			open (CSV, ">", "images/con_v_time.$random.csv") or die $!;  
-# CSV header
-			print CSV "day,no_uptake,25%_uptake,50%_uptake,75%_uptake," . $uptake_known . "_uptake,dose_ppm,food_ppm,pwc%\n";
-
-			for $ref ( 0 .. $#{$data[0]} ) 
-			{
-				print CSV "$data[0][$ref],$data[1][$ref],$data[2][$ref],$data[3][$ref],$data[4][$ref],$data[5][$ref],$doseday[$ref],$food_ppm,$pwcday[$ref]\n";
-			}
-			
-			close CSV;
-	
 			print "<b>Download the CSV <a href=\"images/con_v_time.$random.csv\" target=\"_new\">here</a>!</b><br /><br />\n";
 		}
 		if ($save)
@@ -597,8 +596,6 @@ if ($ENV{'REQUEST_METHOD'} eq 'GET') {
 			$db->do("UPDATE users SET saved_graphs=\'$saved_graphs\' WHERE login=\'$login\'");
 			$db->commit();
 		}
-				
-			
 	
 	}	
 		
@@ -612,7 +609,7 @@ if ($ENV{'REQUEST_METHOD'} eq 'GET') {
 }
 
 &printForm($q,$val);
-print $q->end_html;
+#print $q->end_html;
 
 
 # The input form.  I really do need more subs...
@@ -679,6 +676,7 @@ Optional
 <div id='optional' style='display:none'>";
 
 print '
+	<br />
 	Calculate for 
 	<input type="text" name="known_uptake" size="5" maxlength="4">
 	<input type="radio" name="known_uptake_units">%
@@ -729,9 +727,10 @@ Hey, nerd:
 <div id='nerd' style='display:none'>";
 
 	print '
-	Regress data 
+	<br />
+	Regress data into a  
 	<input type="checkbox" name="regress" value="true">
-	 instead.	
+	 best fit line instead.	
 	<br />
 	--------
 	<br />
