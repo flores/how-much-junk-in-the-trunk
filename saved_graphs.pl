@@ -88,5 +88,6 @@ else
 		
 	}
 	print "</table>";
+	$db->disconnect();
 }
 

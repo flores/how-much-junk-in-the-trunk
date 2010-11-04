@@ -41,11 +41,11 @@ print "<title>Concentrations of $stuff vs Time and Plant Uptake using The Estima
 print "<p align='right'><font size='2'>\n";
 if ($login)
 {
-	print "Hi, $login | <a href='saved_graphs.pl'>view your saved graphs</a> | <a href='logout.pl'>logout</a>";
+	print "Hi $login | <a href='saved_graphs.pl'>view your saved graphs</a> | <a href='logout.pl'>logout</a>";
 }
 else
 {
-	print "<a href='login.pl'>login/register</a>";
+	print "<a href='login.pl'>login/register</a> to save your graphs!";
 }
 print "</font></p>\n";
 		
@@ -524,7 +524,7 @@ if ($ENV{'REQUEST_METHOD'} eq 'GET') {
 			}
 			else
 			{
-				$uptake_known_legend="$uptake_known\%";
+				$uptake_known_legend="90\%";
 			}		
 
 #... finally...	
@@ -572,7 +572,7 @@ if ($ENV{'REQUEST_METHOD'} eq 'GET') {
 # and create a csv of it
 			 open (CSV, ">", "images/con_v_time.$image.csv") or die $!;
 # CSV header
-                        print CSV "day,no_uptake,25%_uptake,50%_uptake,75%_uptake," . $uptake_known . "_uptake,dose_ppm,food_ppm,pwc%\n";
+                        print CSV "day,no_uptake,25%_uptake,50%_uptake,75%_uptake," . $uptake_known_legend . "_uptake,dose_ppm,food_ppm,pwc%\n";
 
                         for $ref ( 0 .. $#{$data[0]} )
                         {
@@ -596,6 +596,7 @@ if ($ENV{'REQUEST_METHOD'} eq 'GET') {
 			$db->do("UPDATE users SET saved_graphs=\'$saved_graphs\' WHERE login=\'$login\'");
 			$db->commit();
 		}
+	$db->disconnect();
 	
 	}	
 		
@@ -722,7 +723,7 @@ print '
 <br />';
 # and the csv and regression stuff, too..
 print "
-Hey, nerd:
+Hey, nerd
 <input name='nerd' onClick=\"document.getElementById('nerd').style.display='block';\" type='checkbox' value='true' /> 
 <div id='nerd' style='display:none'>";
 
