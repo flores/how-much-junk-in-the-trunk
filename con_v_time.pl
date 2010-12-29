@@ -1,18 +1,30 @@
 #!/usr/bin/perl 
 
-use CGI::Form;
+$hi='
+ This here ugly script was written by wet@petalphile.com
+ so aquatic plant nerds could model levels of various 
+ nutrients (Stuff) in aquariums under various levels of 
+ plant mass, growth rate, and light (uptake).
+ 
+ you can check out the source on github:
+ http://github.com/flores/how-much-junk-in-the-trunk
+
+ suggestions are welcome!';
+
+
 use CGI::Session;
-use CGI; 
+use CGI::Form;
+use CGI ':standard';
 use GD::Graph::area;
 use Statistics::OLS;
 use DBI;
 
 
-$q = new CGI;
+$q = new CGI::Form;
+$c = new CGI;
 
 # did this guy login?
-
-$cookie = $q->cookie(-name => "session");
+$cookie = $c->cookie(-name => "session");
 if ($cookie) {
 	CGI::Session->name($cookie);
 }
@@ -37,7 +49,10 @@ if ($stuff !~ /\w/)
 
 print $q->header();
 
-print "<title>Concentrations of $stuff vs Time and Plant Uptake using The Estimative Index</title>";
+print "<! $hi >\n";
+
+print "<title>Concentrations of $stuff vs Time and Plant Uptake using The Estimative Index</title>\n";
+
 print "<p align='right'><font size='2'>\n";
 if ($login)
 {
@@ -53,10 +68,10 @@ print "<center>\n";
 
 if ($ENV{'REQUEST_METHOD'} eq 'GET') {
 
-        undef($compound);
-        undef($doses_wk);
-        undef($tank);
-        undef($pwc);
+#        undef($compound);
+#        undef($doses_wk);
+#        undef($tank);
+#        undef($pwc);
 #        &printForm($q);
 
 
@@ -226,7 +241,7 @@ if ($ENV{'REQUEST_METHOD'} eq 'GET') {
 # uptake
 # does food input affect it
 	my ($food_ppm,$vol);
-            	if ($food_mg > 0)
+        if ($food_mg > 0)
 	{
 		if ($tank_units=~/gal/)
              		{
@@ -256,13 +271,16 @@ if ($ENV{'REQUEST_METHOD'} eq 'GET') {
 	if ($err==0) 
 	{
 
-# does this already exist in the database?
+# has someone made this exact model before?  
 		my $db = DBI->connect("dbi:SQLite:dbname=sqlitedb/stuff.db","","") or die "database issues";
 		my $existinggraph=$db->selectrow_array("SELECT id FROM graphs WHERE dose=\'$dose\' AND dose_freq=\'$dose_freq\' AND pwc=\'$pwc\' AND pwc_freq=\'$pwc_freq\' AND dose_pwc=\'$dose_pwc\' AND food_ppm=\'$food_ppm\' AND dose_initial=\'$dose_initial\' AND length=\'$length\' AND regress=\'$regress\' AND uptake_known=\'$uptake_known\'");
+
+# yes?  load that image and skip the math.
 		if ($existinggraph)
 		{
 			$image=$existinggraph;
 		}
+
 		else
 		{
 			my @uptake_0=();			
@@ -275,7 +293,7 @@ if ($ENV{'REQUEST_METHOD'} eq 'GET') {
 			my @pwcday=();
 			my @foodppm=();	
 
-# building the data.  these different arrays by uptake rates is the gist/point of the script.		
+# how much Stuff do the plants take up per day at 25%, 50%, 75%, and 90% uptake?		
 			my $uptake_rate_25 = ($dose * $dose_freq + $food_ppm) / 7 * 0.25;
 			my $uptake_rate_50 = ($dose * $dose_freq + $food_ppm) / 7 * 0.50;
 			my $uptake_rate_75 = ($dose * $dose_freq + $food_ppm) / 7 * 0.75;
@@ -292,10 +310,10 @@ if ($ENV{'REQUEST_METHOD'} eq 'GET') {
 			push(@doseday,$dose_initial);
 			push(@pwcday,0);
 			my $day=2;
-#pie is just a marker that becomes 1 on pwc day
+#pie is just a marker that becomes 1 on partial water change (pwc) day
 			my $pie=2;
 
-# length is how long we're building this model...		
+# length is how many days we're building this model...		
 			while ($day < ( $length + 1 ) )
 			{
 				
@@ -345,7 +363,7 @@ if ($ENV{'REQUEST_METHOD'} eq 'GET') {
 					$now_90 = $now_90+$dose;
 					push(@doseday,$dose);
 				}
-# ... except for these for 4x a week dosing
+# ... except for these extra ones when someone doses 4x a week.
 				elsif ( $pie=~/^7$|14|21|28/ && ($dose_freq=~/4/ && $pie > 1) )
 				{
 					$now_0 = $now_0+$dose;
@@ -367,7 +385,6 @@ if ($ENV{'REQUEST_METHOD'} eq 'GET') {
 					push(@doseday,$dose);
 				}
 
-# All this stuff is dependent on pwc schedule, as opposed to dosing schedule above.
 # pwc dose day!	
 				elsif ( $pie =~ /^1$/ )
 				{
@@ -519,7 +536,7 @@ if ($ENV{'REQUEST_METHOD'} eq 'GET') {
 			$uptake_known_legend = $uptake_known*100;
 			if ($uptake_known_legend !~ /^90$/)
 			{
-				$uptake_known_legend =~ /^(.+\.?\d?)/;
+				$uptake_known_legend =~ /^(\d+.?\d?)/;
 				$uptake_known_legend ="$1\% (custom)";
 			}
 			else
@@ -608,145 +625,101 @@ if ($ENV{'REQUEST_METHOD'} eq 'GET') {
 	}
 	
 }
+&printForm($q);
+print $q->end_html;
 
-&printForm($q,$val);
-#print $q->end_html;
 
 
-# The input form.  I really do need more subs...
-sub printForm {
+ sub printForm {
 
 	my ($q,$val)=@_;
 
-#	print $q->start_multipart_form();
+	print $q->start_multipart_form();
 
-	print '
-<form method="post">
-I am adding 
-<input type="text" name="dose" size=5 maxlength=4 default='
-.$dose.
-'> ppm of '
-.$stuff.
-' <select name="dose_freq">
-	<option>1
-	<option>2
-	<option selected>3
-	<option>4
-	<option>7
-</select>
-times a week
-<br />';
-print "and I'll change";
-print '
-<input type="text" name="pwc" size=4 maxlength=4> 
-% of the water every 
-<select name="pwc_freq">
-	<option>week.
-	<option>two weeks.
-	<option>month.
-</select>
-<br /><br />
-How much '
-.$stuff.
-' would I have each day for the next 
-<select name="length">
-	<option>month
-	<option selected>three months
-	<option>six months
-	<option>year
-</select>
- ?
-<br />
-<br />
-<input type="submit" value="Graph me!">
+	print "\n<center>\n";
 
-<br />
-<br />
-<br />';
+	print "I am adding ";
+	print $q->textfield( -name=>'dose',-size=>5,-maxlength=>5,-default=>"$dose" );
+	print " ppm of $stuff ";
+	print $q->popup_menu( -name=>'dose_freq', -values=>['1','2','3','4','7'], -default=>'3');#, -labels=>['week','two weeks','month']);
+	print "times a week";
+	print "<br />\n";
+        print "and I'll change ";
+	print $q->textfield( -name=>'pwc',-size=>4,-maxlength=>4 );
+	print " % of the water every ";
+	print $q->popup_menu( -name=>'pwc_freq', -values=>['week','two weeks','month'], -default=>'week');#, -labels=>['week.','two weeks.','month.']);
+	print "<br />\n";
+	print "<br />\n";
+	print "How much $stuff would I have every day for the next ";
+	print $q->popup_menu( -name=>'length', -values=>['month','three months','six months','year'], -default=>'three months');
+	print "?<br /><br />\n";
+	print $q->submit( -name=>'Action',-value=>'Graph me!' );
+	print "<br />\n";
+	if ($login)
+	{
+        	print '<br />Add to my <input type="checkbox" name="save">saved graphs.<br />';
+	}
 
-if ($login)
-{
-	print 'Add to my <input type="checkbox" name="save">saved graphs.<br /><br />';
-}
+	print "<br />\n
+	Optional
+	<input name='advanced' onClick=\"document.getElementById('optional').style.display='block';\" type='checkbox' value='true' />
+	<div id='optional' style='display:none'>";
+	print "Calculate for ";
+	print $q->textfield( -name=>'known_uptake',-size=>5,-maxlength=>4 );
+	print $q->radio_group( -name=>'known_uptake_units', values=>['%','ppm'], -default=>'%');
+	print " weekly uptake.<br />";
+	print "-------<br />\n";
+	print "I am starting with ";
+	print $q->textfield( -name=>'initial',-size=>5,-maxlength=>4 );
+	print " ppm $stuff after a waterchange<br />\n";
+	print "-------<br />\n";
+	print "Instead of my regular dose add ";
+        print $q->textfield( -name=>'dose_pwc',-size=>5,-maxlength=>4 );
+        print " ppm of $stuff at waterchange.<br />\n";
+	print "-------<br />\n";
+	print "My tap has ";
+        print $q->textfield( -name=>'tap_conc',-size=>5,-maxlength=>4 );
+        print " ppm $stuff.   <br />\n";
+	print "-------<br />\n";
+        print "I feed ";
+        print $q->textfield( -name=>'food_mg',-size=>5,-maxlength=>5 );
+        print " mg of food a week\n into my ";
+        print $q->textfield( -name=>'tank',-size=>6,-maxlength=>4 );
+        print $q->radio_group( -name=>'tank_units', values=>['gal','L'], -default=>'gal'); #  " gallons<br /><br />";
+	print " tank.\n This food is ";
+        print $q->textfield( -name=>'food_conc',-size=>4,-maxlength=>4 );
+	print $q->radio_group( -name=>'food_units', values=>['%','mg/kg'], -default=>'%');
+	print " $stuff.<br />\n";
+	print "</div>";
 
-# Hiding the Optional block...
+#	print "-------<br />\n";
+#	print "Set the maximum ppm limit as ";
+#	print $q->popup_menu( -name=>'y_max', -values=>['10','25','50','75','100','150','200','250','300','350'] -default=>'0');
+#	print " ppm.<br />\n";
 
-print "
-Optional 
-<input name='advanced' onClick=\"document.getElementById('optional').style.display='block';\" type='checkbox' value='true' />
-<div id='optional' style='display:none'>";
-
-print '
-	<br />
-	Calculate for 
-	<input type="text" name="known_uptake" size="5" maxlength="4">
-	<input type="radio" name="known_uptake_units">%
-	<input type="radio" name="known_uptake_units">ppm
-	weekly uptake.
-	<br />
-	-------
-	<br />
-	I am starting with 
-	<input type="text" name="initial" size=5 maxlength=4>
-	 ppm '
-	.$stuff.
-	'<br />
-	-------
-	<br/>
-	Instead of my regular dose add
-	<input type="text" name="dose_pwc" size=5 maxlength=4>
-	 ppm of '
-	.$stuff.
-	' at waterchange.
-	<br />
-	-------
-	<br />
-	My tap has 
-	<input type="text" name="tap_conc" size=5 maxlength=4>
-	 ppm '
-	.$stuff.
-	'   <br />
-	-------
-	<br />
-	I feed 
-	<input type="text" name="food_mg" size=5 maxlength=5>
-	 mg of food a week into my
-	<input type="text" name="tank" size=6 maxlength=4>
-	<input type="radio" name="tank_units" default>gal
-	<input type="radio" name="tank_units">L
-	 tank.  This food is 
-	<input type="radio" name="food_units" default>%
-	<input type="radio" name="food_units" default>mg/kg'
-	.$stuff.
-	'<br />
-</div>
-<br />';
 # and the csv and regression stuff, too..
 print "
-Hey, nerd
-<input name='nerd' onClick=\"document.getElementById('nerd').style.display='block';\" type='checkbox' value='true' /> 
-<div id='nerd' style='display:none'>";
+	<br />
+	Hey, nerd
+	<input name='nerd' onClick=\"document.getElementById('nerd').style.display='block';\" type='checkbox' value='true' />
+	<div id='nerd' style='display:none'>";
 
+        print '
+        <br />
+        Regress data into a
+        <input type="checkbox" name="regress" value="true">
+         best fit line instead.
+        <br />
+        --------
+        <br />
+        Give me
+        <input type="checkbox" name="CSV" value="true">
+        CSV, too, foo.
+	</div>';
 	print '
-	<br />
-	Regress data into a  
-	<input type="checkbox" name="regress" value="true">
-	 best fit line instead.	
-	<br />
-	--------
-	<br />
-	Give me 
-	<input type="checkbox" name="CSV" value="true">
-	CSV, too, foo.
-</div>';
-print '
-<p>Having trouble calculating Stuff?  Check <a href="http://calc.petalphile.com" target="_blank">this</a> out.</p>
-<br />
-</form>';
+	<p>Having trouble calculating Stuff?  Check <a href="http://calc.petalphile.com" target="_blank">this</a> out.</p>
+	<br />';
 
 
-}
+ }
 
-
-
-	
