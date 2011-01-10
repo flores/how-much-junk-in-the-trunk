@@ -34,45 +34,47 @@ $login = $session->param('login');
 
 # are we passing variables from calc.petalphile.com?
 
-my $stuff  = $q->param('stuff');
-my $dose   = $q->param('dose');
+my $stuff  = $c->param('stuff');
+my $dose   = $c->param('dose');
 
-if ($stuff =~ /(\w+);dose=(.*)/)
+if ( $stuff =~ /(^\w+$);dose=(.*)/ )
 {
 	$stuff = "$1";
 	$dose = "$2";
 }
-if ($stuff !~ /\w/)
+
+if ($stuff !~ /^\w+$/)
 {
 	$stuff = "Stuff";
 }
-
 print $q->header();
-
-print "<! $hi >\n";
-
-print "<title>Concentrations of $stuff vs Time and Plant Uptake using The Estimative Index</title>\n";
-
-print "<p align='right'><font size='2'>\n";
-if ($login)
-{
-	print "Hi $login | <a href='saved_graphs.pl'>view your saved graphs</a> | <a href='logout.pl'>logout</a>";
-}
-else
-{
-	print "<a href='login.pl'>login/register</a> to save your graphs!";
-}
-print "</font></p>\n";
-		
-print "<center>\n";
 
 if ($ENV{'REQUEST_METHOD'} eq 'GET') {
 
-#        undef($compound);
-#        undef($doses_wk);
-#        undef($tank);
-#        undef($pwc);
-#        &printForm($q);
+	
+	print '<html><head>
+<script type="text/javascript" src="javascript/jquery-1.4.4.min.js"></script>
+<script type="text/javascript" src="javascript/jquery.form.js?v2.43"></script>
+<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.8/jquery-ui.min.js"></script>
+<script type="text/javascript" src="javascript/con_v_time.js"></script>';
+	print "<title>Concentrations of $stuff vs Time and Plant Uptake using The Estimative Index</title>\n";
+	
+	print "<! $hi >\n";
+	print "</head>";
+	
+	print "<p align='right'><font size='2'>\n";
+	if ($login)
+	{
+		print "Hi $login | <a href='saved_graphs.pl'>view your saved graphs</a> | <a href='logout.pl'>logout</a>";
+	}
+	else
+	{
+		print "<a href='login.pl'>login/register</a> to save your graphs!";
+	}
+	print "</font></p>\n";
+		
+        &printForm($q);
+        print $q->end_html;
 
 
 } else {
@@ -549,7 +551,7 @@ if ($ENV{'REQUEST_METHOD'} eq 'GET') {
 			$mygraph->set(
 				x_label     => 'day',
 			        y_label     => "ppm $stuff",
-			        title       => "Concentrations of $stuff v time using The Estimative Index",
+			        title       => "Concentrations of Stuff v time and plant uptake using The Estimative Index",
 			        line_width  => 2,	
 			        dclrs       => ['red', 'pink', 'blue', 'yellow', 'green'],		
 				long_ticks  => 1,
@@ -599,12 +601,11 @@ if ($ENV{'REQUEST_METHOD'} eq 'GET') {
                         close CSV;
 		}
 		print "<img src='images/con_v_time.$image.png'><br />\n";
-		print "<br />\n<br />\n";
 
 # Are we pushing it into a CSV, too?
 		if ($csv =~ /true/)
 		{
-			print "<b>Download the CSV <a href=\"images/con_v_time.$random.csv\" target=\"_new\">here</a>!</b><br /><br />\n";
+			print "<b>Download the CSV <a href=\"images/con_v_time.$random.csv\" target=\"_new\">here</a>!</b>\n";
 		}
 		if ($save)
 		{
@@ -625,20 +626,27 @@ if ($ENV{'REQUEST_METHOD'} eq 'GET') {
 	}
 	
 }
-&printForm($q);
-print $q->end_html;
 
 
 
  sub printForm {
 
 	my ($q,$val)=@_;
-
-	print $q->start_multipart_form();
-
+	
 	print "\n<center>\n";
+	
+	print "<div id='result'>
+</div>\n
+<div id='loading' style='display: none;'>  
+<img src='ajax-loader.gif'/> 
+Loading...  
+</div>";
+	print $q->start_multipart_form( -id=>'eiform' );
 
-	print "I am adding ";
+	print "<div id='accordion'>
+	<h4><a href='#'>Required</a></h4>
+	<div>
+	I am adding ";
 	print $q->textfield( -name=>'dose',-size=>5,-maxlength=>5,-default=>"$dose" );
 	print " ppm of $stuff ";
 	print $q->popup_menu( -name=>'dose_freq', -values=>['1','2','3','4','7'], -default=>'3');#, -labels=>['week','two weeks','month']);
@@ -652,18 +660,14 @@ print $q->end_html;
 	print "<br />\n";
 	print "How much $stuff would I have every day for the next ";
 	print $q->popup_menu( -name=>'length', -values=>['month','three months','six months','year'], -default=>'three months');
-	print "?<br /><br />\n";
-	print $q->submit( -name=>'Action',-value=>'Graph me!' );
-	print "<br />\n";
+	print "?\n
+	</div>
+	<h4><a href='#'>Optional</a></h4>
+	<div>";
 	if ($login)
 	{
         	print '<br />Add to my <input type="checkbox" name="save">saved graphs.<br />';
 	}
-
-	print "<br />\n
-	Optional
-	<input name='advanced' onClick=\"document.getElementById('optional').style.display='block';\" type='checkbox' value='true' />
-	<div id='optional' style='display:none'>";
 	print "Calculate for ";
 	print $q->textfield( -name=>'known_uptake',-size=>5,-maxlength=>4 );
 	print $q->radio_group( -name=>'known_uptake_units', values=>['%','ppm'], -default=>'%');
@@ -689,8 +693,10 @@ print $q->end_html;
 	print " tank.\n This food is ";
         print $q->textfield( -name=>'food_conc',-size=>4,-maxlength=>4 );
 	print $q->radio_group( -name=>'food_units', values=>['%','mg/kg'], -default=>'%');
-	print " $stuff.<br />\n";
-	print "</div>";
+	print " $stuff.";
+	print "</div>
+	<h4><a href='#'>Hey, nerd</a></h4>
+	<div>";
 
 #	print "-------<br />\n";
 #	print "Set the maximum ppm limit as ";
@@ -698,14 +704,7 @@ print $q->end_html;
 #	print " ppm.<br />\n";
 
 # and the csv and regression stuff, too..
-print "
-	<br />
-	Hey, nerd
-	<input name='nerd' onClick=\"document.getElementById('nerd').style.display='block';\" type='checkbox' value='true' />
-	<div id='nerd' style='display:none'>";
-
-        print '
-        <br />
+	print '
         Regress data into a
         <input type="checkbox" name="regress" value="true">
          best fit line instead.
@@ -715,7 +714,9 @@ print "
         Give me
         <input type="checkbox" name="CSV" value="true">
         CSV, too, foo.
+	</div>
 	</div>';
+	print $q->submit( -name=>'Action',-value=>'Graph me!',-id=>'eiform' );
 	print '
 	<p>Having trouble calculating Stuff?  Check <a href="http://calc.petalphile.com" target="_blank">this</a> out.</p>
 	<br />';
