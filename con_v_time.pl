@@ -54,7 +54,7 @@ if ($ENV{'REQUEST_METHOD'} eq 'GET') {
 	
 	print '<html><head>
 <script type="text/javascript" src="javascript/jquery-1.4.4.min.js"></script>
-<script type="text/javascript" src="javascript/jquery.form.js?v2.43"></script>
+<script type="text/javascript" src="javascript/jquery.form.js"></script>
 <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.8/jquery-ui.min.js"></script>
 <script type="text/javascript" src="javascript/con_v_time.js"></script>';
 	print "<title>Concentrations of $stuff vs Time and Plant Uptake using The Estimative Index</title>\n";
@@ -638,10 +638,10 @@ if ($ENV{'REQUEST_METHOD'} eq 'GET') {
 	print "<div id='result'>
 </div>\n
 <div id='loading' style='display: none;'>  
-<img src='ajax-loader.gif'/> 
-Loading...  
+<img src='ajax-loader.gif'/><br />
+Loading...
 </div>";
-	print $q->start_multipart_form( -id=>'eiform' );
+	print $q->start_multipart_form( -id=>'eiform', -action=>'con_v_time.pl' );
 
 	print "<div id='accordion'>
 	<h4><a href='#'>Required</a></h4>
@@ -666,7 +666,7 @@ Loading...
 	<div>";
 	if ($login)
 	{
-        	print '<br />Add to my <input type="checkbox" name="save">saved graphs.<br />';
+        	print 'Add to my <input type="checkbox" name="save">saved graphs.<br />';
 	}
 	print "Calculate for ";
 	print $q->textfield( -name=>'known_uptake',-size=>5,-maxlength=>4 );
@@ -714,10 +714,14 @@ Loading...
         Give me
         <input type="checkbox" name="CSV" value="true">
         CSV, too, foo.
+	<br />
+	<br />
 	</div>
 	</div>';
-	print $q->submit( -name=>'Action',-value=>'Graph me!',-id=>'eiform' );
+	print $q->submit( -name=>'Action',-value=>'Graph me!',-id=>'graphbutton' );
 	print '
+	<br />
+	<br />
 	<p>Having trouble calculating Stuff?  Check <a href="http://calc.petalphile.com" target="_blank">this</a> out.</p>
 	<br />';
 
