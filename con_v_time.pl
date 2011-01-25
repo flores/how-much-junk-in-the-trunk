@@ -15,9 +15,10 @@ $hi='
 use CGI::Session;
 use CGI::Form;
 use CGI ':standard';
+use MongoDB;
+use MongoDB::OID;
 use GD::Graph::area;
 use Statistics::OLS;
-use DBI;
 
 
 $q = new CGI::Form;
@@ -62,16 +63,16 @@ if ($ENV{'REQUEST_METHOD'} eq 'GET') {
 	print "<! $hi >\n";
 	print "</head>";
 	
-	print "<p align='right'><font size='2'>\n";
+#	print "<p align='right'><font size='2'>\n";
 	if ($login)
 	{
-		print "Hi $login | <a href='saved_graphs.pl'>view your saved graphs</a> | <a href='logout.pl'>logout</a>";
+#		print "Hi $login | <a href='saved_graphs.pl'>view your saved graphs</a> | <a href='logout.pl'>logout</a>";
 	}
 	else
 	{
-		print "<a href='login.pl'>login/register</a> to save your graphs!";
+#		print "<a href='login.pl'>login/register</a> to save your graphs!";
 	}
-	print "</font></p>\n";
+#	print "</font></p>\n";
 		
         &printForm($q);
         print $q->end_html;
@@ -274,13 +275,26 @@ if ($ENV{'REQUEST_METHOD'} eq 'GET') {
 	{
 
 # has someone made this exact model before?  
-		my $db = DBI->connect("dbi:SQLite:dbname=sqlitedb/stuff.db","","") or die "database issues";
-		my $existinggraph=$db->selectrow_array("SELECT id FROM graphs WHERE dose=\'$dose\' AND dose_freq=\'$dose_freq\' AND pwc=\'$pwc\' AND pwc_freq=\'$pwc_freq\' AND dose_pwc=\'$dose_pwc\' AND food_ppm=\'$food_ppm\' AND dose_initial=\'$dose_initial\' AND length=\'$length\' AND regress=\'$regress\' AND uptake_known=\'$uptake_known\'");
+		my $conn = MongoDB::Connection->new(host => 'localhost');
+		my $db = $conn->graphdata;
+		my $graphs = $db->graphs;
+		my $existinggraph=$graphs->find_one( { 
+			'dose'		=>	$dose,
+			'dose_freq'	=>	$dose_freq,
+			'pwc'		=>	$pwc,
+			'pwc_freq'	=>	$pwc_freq,
+			'dose_pwc'	=>	$dose_pwc,
+			'food_ppm'	=>	$food_ppm,
+			'dose_initial'	=>	$dose_initial,
+			'length'	=>	$length,
+			'regress'	=>	$regress,
+			'uptake_known'	=>	$uptake_known 
+			}, { _id => 1 } );
 
 # yes?  load that image and skip the math.
 		if ($existinggraph)
 		{
-			$image=$existinggraph;
+			my $image = $existinggraph;
 		}
 
 		else
@@ -577,11 +591,20 @@ if ($ENV{'REQUEST_METHOD'} eq 'GET') {
 			$mygraph->set_legend_font(GD::gdMediumBoldFont);
 			$mygraph->set_legend('no uptake', '25% uptake', '50% uptake', '75% uptake', "$uptake_known_legend uptake");
 
-			$db->do("INSERT INTO graphs (dose,dose_freq,pwc,pwc_freq,dose_pwc,food_ppm,dose_initial,uptake_known,length,regress) VALUES (\'$dose\',\'$dose_freq\',\'$pwc\',\'$pwc_freq\',\'$dose_pwc\',\'$food_ppm\',\'$dose_initial\',\'$uptake_known\',\'$length\',\'$regress\')");
-                        if ($db->err()) { die "$DBI::errstr\n"; }
-                        $db->commit();
+			my $graphid = $graphs->insert( {
+	                        'dose'		=>	$dose,
+        	                'dose_freq'	=>	$dose_freq,
+                	        'pwc'		=>	$pwc,
+                      		'pwc_freq'	=>	$pwc_freq,
+	                        'dose_pwc'	=>	$dose_pwc,
+        	                'food_ppm'	=>	$food_ppm,
+	                        'dose_initial'	=>	$dose_initial,
+	                        'length'	=>	$length,
+	                        'regress'	=>	$regress,
+	                        'uptake_known'	=>	$uptake_known
+                        }, { safe => 1 } );
 			
-			$image=$db->selectrow_array("SELECT last_insert_rowid() FROM graphs");
+			$image = $graphid->to_string;
 			
 			open(IMG,">images/con_v_time.$image.png") or die $!;
 			binmode IMG;
@@ -605,17 +628,13 @@ if ($ENV{'REQUEST_METHOD'} eq 'GET') {
 # Are we pushing it into a CSV, too?
 		if ($csv =~ /true/)
 		{
-			print "<b>Download the CSV <a href=\"images/con_v_time.$random.csv\" target=\"_new\">here</a>!</b>\n";
+			print "<b>Download the CSV <a href=\"images/con_v_time.$image.csv\" target=\"_new\">here</a>!</b>\n";
 		}
-		if ($save)
-		{
-			$saved_graphs=$db->selectrow_array("SELECT saved_graphs FROM users WHERE login=\'$login\'");
-			$saved_graphs="$saved_graphs $image";
-			$db->do("UPDATE users SET saved_graphs=\'$saved_graphs\' WHERE login=\'$login\'");
-			$db->commit();
-		}
-	$db->disconnect();
-	
+#		if ($save)
+#		{
+#			$users = $conn->users ;
+#			$users->update({"user" => $login}, {'$push' => {'saved_graphs' => $graphid}});
+#		}
 	}	
 		
 	   
