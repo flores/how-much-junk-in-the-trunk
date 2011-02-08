@@ -125,6 +125,11 @@ if ($ENV{'REQUEST_METHOD'} eq 'GET') {
 		print "When dosing once a week and weekly water changes you can only use the original dose.  It is the same as your water change dose.<br />\n";
 		$err=1;
 	}
+	if ( $dose_freq_value == 7 && $dose_pwc && $pwc_freq_word=~/^day$/)
+	{
+		print "When daily dosing with daily water changes, the water change dose should be empty.  Only use the dosing in the required field.<br />\n";
+		$err=1;
+	}
 
 # dirty input validation on the optional stuff
 	if ( ($food_mg > 0) && ( $food_mg!~/^\.?[\d]+\.?\d*$/ || $food_mg=~/.*\..*\./ || $food_mg=~/-/) )
@@ -178,32 +183,36 @@ if ($ENV{'REQUEST_METHOD'} eq 'GET') {
 # schedule stuff
 	if ($pwc_freq_word=~/week/)
 	{
-	$pwc_freq=1;
+		$pwc_freq=1;
 	}
-	if ($pwc_freq_word=~/two week/)
+	elsif ($pwc_freq_word=~/two week/)
 	{
-	$pwc_freq=2;
+		$pwc_freq=2;
 	}
-	if ($pwc_freq_word=~/month/)
+	elsif ($pwc_freq_word=~/month/)
 	{
-	$pwc_freq=4;
+		$pwc_freq=4;
+	}
+	elsif ($pwc_freq_word=~/day/)
+	{
+		$pwc_freq=(1/7);
 	}
 	
 	if ($length=~/^month$/)
 	{
-	$length=28;
+		$length=28;
 	}
-	if ($length=~/^three months$/)
+	elsif ($length=~/^three months$/)
 	{
-	$length=91;
+		$length=91;
 	}
-	if ($length=~/^six months$/)
+	elsif ($length=~/^six months$/)
 	{
-	$length=182;
+		$length=182;
 	}
-	if ($length=~/^year$/)
+	elsif ($length=~/^year$/)
 	{
-	$length=364;
+		$length=364;
 	}
 	
 	if ($uptake_known=~/[A-Z]|[a-z]|^0$|%|\*|\..*\./)
@@ -674,7 +683,7 @@ Loading...
         print "and I'll change ";
 	print $q->textfield( -name=>'pwc',-size=>4,-maxlength=>4 );
 	print " % of the water every ";
-	print $q->popup_menu( -name=>'pwc_freq', -values=>['week','two weeks','month'], -default=>'week');#, -labels=>['week.','two weeks.','month.']);
+	print $q->popup_menu( -name=>'pwc_freq', -values=>['day','week','two weeks','month'], -default=>'week');#, -labels=>['week.','two weeks.','month.']);
 	print "<br />\n";
 	print "<br />\n";
 	print "How much $stuff would I have every day for the next ";
