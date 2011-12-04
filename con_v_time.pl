@@ -54,10 +54,26 @@ if ($ENV{'REQUEST_METHOD'} eq 'GET') {
 
 	
 	print '<html><head>
-<script type="text/javascript" src="javascript/jquery-1.4.4.min.js"></script>
-<script type="text/javascript" src="javascript/jquery.form.js"></script>
-<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.8/jquery-ui.min.js"></script>
-<script type="text/javascript" src="javascript/con_v_time.js"></script>';
+<script type="text/javascript" src="http://cdn.petalphile.com/javascript/jquery-1.4.4.min.js"></script>
+<script type="text/javascript" src="http://cdn.petalphile.com/javascript/jquery.form.js"></script>
+<script type="text/javascript" src="http://cdn.petalphile.com/javascript/jquery-ui.min.js"></script>
+<script type="text/javascript" src="http://cdn.petalphile.com/javascript/con_v_time.js"></script>';
+ print '<script type="text/javascript">';
+ print "
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-25702552-1']);
+  _gaq.push(['_setDomainName', 'petalphile.com']);
+  _gaq.push(['_setAllowHash', false]);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+
+</script>";
+
 	print "<title>Concentrations of $stuff vs Time and Plant Uptake using The Estimative Index</title>\n";
 	
 	print "<! $hi >\n";
@@ -100,7 +116,10 @@ if ($ENV{'REQUEST_METHOD'} eq 'GET') {
 	my $csv=$q->param('CSV');
 	my $regress=$q->param('regress');
 	my $save=$q->param('save');
-	    	 
+	my $graphstyle=$q->param('graphstyle');
+
+#	$graphstyle = 'simple';
+	
 
 # dirty input validation.  
 	print "<font color=red>";
@@ -120,12 +139,12 @@ if ($ENV{'REQUEST_METHOD'} eq 'GET') {
 		print "Tap water's concentration of $stuff must be a real number.<br />\n";
 		$err=1;
 	}
-	if ( $dose_freq_value=~/1/ && $dose_pwc && $pwc_freq_word=~/^week$/)
+	if ( $dose_freq_value=~/1/ && $dose_pwc && $pwc_freq_word=~/^every week$/)
 	{
 		print "When dosing once a week and weekly water changes you can only use the original dose.  It is the same as your water change dose.<br />\n";
 		$err=1;
 	}
-	if ( $dose_freq_value == 7 && $dose_pwc && $pwc_freq_word=~/^day$/)
+	if ( $dose_freq_value == 7 && $dose_pwc && $pwc_freq_word=~/^every day$/)
 	{
 		print "When daily dosing with daily water changes, the water change dose should be empty.  Only use the dosing in the required field.<br />\n";
 		$err=1;
@@ -181,7 +200,7 @@ if ($ENV{'REQUEST_METHOD'} eq 'GET') {
 	$dose_pwc=$dose_pwc + ($tap_conc * $pwc / 100);
 
 # schedule stuff
-	if ($pwc_freq_word=~/week/)
+	if ($pwc_freq_word=~/^every week$/)
 	{
 		$pwc_freq=1;
 	}
@@ -195,8 +214,21 @@ if ($ENV{'REQUEST_METHOD'} eq 'GET') {
 	}
 	elsif ($pwc_freq_word=~/day/)
 	{
-		$pwc_freq=(1/7);
+		$pwc_freq=1/7;
 	}
+	elsif ($pwc_freq_word=~/twice a week/)
+	{
+		$pwc_freq=2/7;
+	}
+	elsif ($pwc_freq_word=~/three times a week/)
+	{
+		$pwc_freq=3/7;
+	}
+	elsif ($pwc_freq_word=~/four times a week/)
+	{
+		$pwc_freq=4/7;
+	}
+	
 	
 	if ($length=~/^month$/)
 	{
@@ -301,13 +333,13 @@ if ($ENV{'REQUEST_METHOD'} eq 'GET') {
 			}, { _id => 1 } );
 
 # yes?  load that image and skip the math.
-		if ($existinggraph)
-		{
-			my $image = $existinggraph;
-		}
-
-		else
-		{
+#		if ($existinggraph != '')
+#		{
+#			my $image = $existinggraph->to_string;
+#		}
+#
+#		else
+#		{
 			my @uptake_0=();			
 			my @uptake_10=();			
 			my @uptake_25=();
@@ -330,8 +362,7 @@ if ($ENV{'REQUEST_METHOD'} eq 'GET') {
 			push (@uptake_75, $dose_initial);
 			push (@uptake_known, $dose_initial);
 	
-			my (@days);
-			push(@days,1);
+			my @days = ( 1 );
 			push(@doseday,$dose_initial);
 			push(@pwcday,0);
 			my $day=2;
@@ -350,8 +381,7 @@ if ($ENV{'REQUEST_METHOD'} eq 'GET') {
 
 # always evenly divisible on pwc day.	
 				my $pwc_day = $day / ( 7 * $pwc_freq );
-		
-				if ( $pwc_day !~ /\./ )
+				if ( $pwc_day !~ /\./ && ( $pwc_freq >= 1 || $pwc_freq == 1/7 ) )
 				{
 					$now_0 = $now_0 * ( (100 - $pwc ) / 100 );
 					$now_25 = $now_25 * ( (100 - $pwc ) / 100 );
@@ -360,6 +390,34 @@ if ($ENV{'REQUEST_METHOD'} eq 'GET') {
 					$now_90 = $now_90 * ( (100 - $pwc ) / 100 );
 					push(@pwcday,$pwc);
 					$pie=1;
+				}
+				elsif ( $pie =~ /^4$/ && $pwc_freq == 2/7 )
+				{
+                                        $now_0 = $now_0 * ( (100 - $pwc ) / 100 );
+                                        $now_25 = $now_25 * ( (100 - $pwc ) / 100 );
+                                        $now_50 = $now_50 * ( (100 - $pwc ) / 100 );
+                                        $now_75 = $now_75 * ( (100 - $pwc ) / 100 );
+                                        $now_90 = $now_90 * ( (100 - $pwc ) / 100 );
+                                        push(@pwcday,$pwc);
+				}
+				elsif ( $pie =~ /^(3|5)$/ && $pwc_freq == 3/7 )
+				{
+        				$now_0 = $now_0 * ( (100 - $pwc ) / 100 );
+                                        $now_25 = $now_25 * ( (100 - $pwc ) / 100 );
+                                        $now_50 = $now_50 * ( (100 - $pwc ) / 100 );
+                                        $now_75 = $now_75 * ( (100 - $pwc ) / 100 );
+                                        $now_90 = $now_90 * ( (100 - $pwc ) / 100 );
+                                        push(@pwcday,$pwc);
+				}
+				elsif ( $pie =~ /^7$/ && $pwc_freq =~ /\./ )
+				{
+                                        $now_0 = $now_0 * ( (100 - $pwc ) / 100 );
+                                        $now_25 = $now_25 * ( (100 - $pwc ) / 100 );
+                                        $now_50 = $now_50 * ( (100 - $pwc ) / 100 );
+                                        $now_75 = $now_75 * ( (100 - $pwc ) / 100 );
+                                        $now_90 = $now_90 * ( (100 - $pwc ) / 100 );
+                                        push(@pwcday,$pwc);
+                                        $pie=1;
 				}
 # to avoid undefs for the csv...
 				else
@@ -379,7 +437,7 @@ if ($ENV{'REQUEST_METHOD'} eq 'GET') {
 				}
 
 # every possible dosing day in a month for 3 or 4x a week dosing, regardless of pwc schedule
-				elsif ( $pie=~/^(3|5|8)$|10|12|15|17|19|22|24|26/ && ($dose_freq=~/3|4/ && $pie > 1 ) )
+				elsif ( $pie=~/^(3|5|8)$|10|12|15|17|19|22|24|26/ && ( $dose_freq=~/3|4/ &&  $pie > 1 ) )
 				{
 					$now_0 = $now_0+$dose;
 					$now_25 = $now_25+$dose;
@@ -400,7 +458,7 @@ if ($ENV{'REQUEST_METHOD'} eq 'GET') {
 				}
 
 # twice a week dosing.  If we change water on a Sunday, we're dosing on Sunday and Wednesday.
-				elsif ( $pie=~/^3$|10|17|24/ && ($dose_freq=~/2/ && $pie > 1 ) )
+				elsif ( $pie=~/^4$|11|18|25/ && ($dose_freq=~/2/ && $pie > 1 ) )
 				{
 					$now_0 = $now_0+$dose;
 					$now_25 = $now_25+$dose;
@@ -494,6 +552,7 @@ if ($ENV{'REQUEST_METHOD'} eq 'GET') {
 			}
 
 # Graphing
+
 # the data array of arrays will be our graph
 			my @data = ();
 			push(@data,\@days);
@@ -502,60 +561,6 @@ if ($ENV{'REQUEST_METHOD'} eq 'GET') {
 			push(@data,\@uptake_50);
 			push(@data,\@uptake_75);
 			push(@data,\@uptake_known);
-
-#get maximum limit for y axis
-			my ($y_max,$y_inc);
-			foreach my $one (@uptake_0)
-       		      	{
-               		 	$y_max = $one if $one > $y_max;
-				$y_min = $one if $one < $y_min;
-             		}
-
-# 10% buffer
-	               	$y_max=$y_max*1.1;
-
-# make y-axis increments such that we don't get a shitton of noise after the decimal 
-			if ($y_min < 0)
-			{
-				my $y_range=$y_max - $y_min;
-				$y_range=~/^(\d+)\d\.?/;
-				$y_inc=$1+1;
-				$y_max=~/^(\d+)\d\.?/;
-				$y_max=$y_max * 10;
-			}				
-			elsif ($y_max >= 10)
-			{
-				$y_max=~/^(\d+)\d\.?/; #)
-				$y_inc=$1+1;
-				$y_max=$y_inc * 10;
-			}
-			elsif ($y_max >= 1 && $y_max < 10)
-			{
-				$y_max=~/^(\d)\.?/;
-				$y_max=$1+1;
-				$y_inc=$y_max * 2;
-			}
-			elsif ($y_max < 1)
-			{
-				$y_max=~/^(0\.\d)/;
-				$y_max=$1;
-				$y_max=($y_max+0.1);
-				$y_inc=$y_max * 10;	
-				if ($y_inc < 10)
-				{
-					$y_inc=5;
-				}
-			}
-	
-# setting number of markers for the x-axis
-			$lengthx=$length+7;
-			my $x_mark= $lengthx / 7 ;
-			if ($lengthx == 35)
-			{
-				$lengthx = 30;
-				$x_mark = 30;
-			}
-			$x_inc=$x_mark;
 
 # make uptake_known a percent for the legend, otherwise we assume 90% uptake for that array
 			$uptake_known_legend = $uptake_known*100;
@@ -569,59 +574,208 @@ if ($ENV{'REQUEST_METHOD'} eq 'GET') {
 				$uptake_known_legend="90\%";
 			}		
 
-#... finally...	
-			my $mygraph = GD::Graph::area->new(800, 400);
-			$mygraph->set(
-				x_label     => 'day',
-			        y_label     => "ppm $stuff",
-			        title       => "Concentrations of Stuff v time and plant uptake using The Estimative Index",
-			        line_width  => 2,	
-			        dclrs       => ['red', 'pink', 'blue', 'yellow', 'green'],		
-				long_ticks  => 1,
-			        tick_length => 0,
-				x_ticks	    => 0,
-				x_label_position => .5,
-				y_label_position => .5,
+# simple png graph 
+			if ($graphstyle =~ /simple/)
+			{
+#get maximum limit for y axis
+				my ($y_max,$y_inc);
+				foreach my $one (@uptake_0)
+       			      	{
+       	        		 	$y_max = $one if $one > $y_max;
+					$y_min = $one if $one < $y_min;
+       		      		}
 	
-				bgclr => 'white',
-				transparent => 1,
-		
-				y_label_skip => 1,	
-				y_max_value => $y_max,
-				x_max_value => $lengthx,
-				y_tick_number => $y_inc,
-				x_tick_number => $x_mark,
-				x_labels_vertical => 1,
-				zero_axis => 0,
-				legend_spacing => 2,
-				accent_treshold => 100_000,
-			) or warn $mygraph->error;
+# 10% buffer
+	        	       	$y_max=$y_max*1.1;
 
-			$mygraph->set_legend_font(GD::gdMediumBoldFont);
-			$mygraph->set_legend('no uptake', '25% uptake', '50% uptake', '75% uptake', "$uptake_known_legend uptake");
+# make y-axis increments such that we don't get a shitton of noise after the decimal 
+				if ($y_min < 0)
+				{
+					my $y_range=$y_max - $y_min;
+					$y_range=~/^(\d+)\d\.?/;
+					$y_inc=$1+1;
+					$y_max=~/^(\d+)\d\.?/;
+					$y_max=$y_max * 10;
+				}				
+				elsif ($y_max >= 10)
+				{
+					$y_max=~/^(\d+)\d\.?/; #)
+					$y_inc=$1+1;
+					$y_max=$y_inc * 10;
+				}
+				elsif ($y_max >= 1 && $y_max < 10)
+				{
+					$y_max=~/^(\d)\.?/;
+					$y_max=$1+1;
+					$y_inc=$y_max * 2;
+				}
+				elsif ($y_max < 1)
+				{
+					$y_max=~/^(0\.\d)/;
+					$y_max=$1;
+					$y_max=($y_max+0.1);
+					$y_inc=$y_max * 10;	
+					if ($y_inc < 10)
+					{
+						$y_inc=5;
+					}
+				}
+	
+# setting number of markers for the x-axis
+				$lengthx=$length+7;
+				my $x_mark= $lengthx / 7 ;
+				if ($lengthx == 35)
+				{
+					$lengthx = 30;
+					$x_mark = 30;
+				}
+				$x_inc=$x_mark;
+	
 
-			my $graphid = $graphs->insert( {
-	                        'dose'		=>	$dose,
-        	                'dose_freq'	=>	$dose_freq,
-                	        'pwc'		=>	$pwc,
-                      		'pwc_freq'	=>	$pwc_freq,
-	                        'dose_pwc'	=>	$dose_pwc,
-        	                'food_ppm'	=>	$food_ppm,
-	                        'dose_initial'	=>	$dose_initial,
-	                        'length'	=>	$length,
-	                        'regress'	=>	$regress,
-	                        'uptake_known'	=>	$uptake_known
-                        }, { safe => 1 } );
+#... finally...	
+				my $mygraph = GD::Graph::area->new(800, 400);
+				$mygraph->set(
+					x_label     => 'day',
+				        y_label     => "ppm $stuff",
+				        title       => "Concentrations of Stuff v time and plant uptake using The Estimative Index",
+				        line_width  => 2,	
+				        dclrs       => ['red', 'pink', 'blue', 'yellow', 'green'],		
+					long_ticks  => 1,
+				        tick_length => 0,
+					x_ticks	    => 0,
+					x_label_position => .5,
+					y_label_position => .5,
+	
+					bgclr => 'white',
+					transparent => 1,
 			
-			$image = $graphid->to_string;
+					y_label_skip => 1,	
+					y_max_value => $y_max,
+					x_max_value => $lengthx,
+					y_tick_number => $y_inc,
+					x_tick_number => $x_mark,
+					x_labels_vertical => 1,
+					zero_axis => 0,
+					legend_spacing => 2,
+					accent_treshold => 100_000,
+				) or warn $mygraph->error;
+	
+				$mygraph->set_legend_font(GD::gdMediumBoldFont);
+				$mygraph->set_legend('no uptake', '25% uptake', '50% uptake', '75% uptake', "$uptake_known_legend uptake");
+
+				my $graphid = $graphs->insert( {
+					'dose'		=>	$dose,
+	        	                'dose_freq'	=>	$dose_freq,
+					'pwc'		=>	$pwc,
+					'pwc_freq'	=>	$pwc_freq,
+					'dose_pwc'	=>	$dose_pwc,
+					'food_ppm'	=>	$food_ppm,
+					'dose_initial'	=>	$dose_initial,
+					'length'	=>	$length,
+	                        	'regress'	=>	$regress,
+	                        	'uptake_known'	=>	$uptake_known
+                        	}, { safe => 1 } );
 			
-			open(IMG,">images/con_v_time.$image.png") or die $!;
-			binmode IMG;
-			print IMG $mygraph->plot(\@data)->png;
-			close IMG;
+				my $image = rand();
+				open(IMG,">images/con_v_time.$image.png") or die $!;
+				binmode IMG;
+				print IMG $mygraph->plot(\@data)->png;
+				close IMG;
+				print "<img src='images/con_v_time.$image.png'><br />\n";
+			}
+			else
+			{
+				print "<script src='http://ajax.googleapis.com/ajax/libs/jquery/1.6.1/jquery.min.js' type='text/javascript'></script>
+				<script src='/js/highcharts.js' type='text/javascript'></script>\n";
+			print "
+			<script type='text/javascript'>
+			var chart;
+			\$(document).ready(function() {
+				chart = new Highcharts.Chart({
+					chart: {
+						renderTo: 'fancy',
+						defaultSeriesType: 'area',
+						zoomType: 'xy'
+					},
+					credits: {
+						enabled: false,
+					},
+					exporting: {
+						enabled: false,
+					},
+					title: {
+						text: \'Concentrations of ". $stuff ." v time and plant uptake using The Estimative Index\'
+					},
+					subtitle: {
+						style: {
+							position: 'absolute',
+							right: '15em',
+							top: '20px'
+						},
+						text: 'hover for values, click and drag the chart to zoom, click uptake values at the bottom to add or remove elements',
+					},
+					xAxis: {
+						title: {
+							text: 'Day',
+							align: 'low'
+						},
+						categories: [
+							". join(', ', @days) ."
+						],
+						tickInterval: 7,
+					},
+					yAxis: {
+						title: {
+							text: 'ppm Stuff',
+							align: 'low'
+						},
+						labels: {
+							formatter: function() {
+								return this.value;
+							}
+						},
+					},
+					tooltip: {
+						formatter: function() {
+				                return 'day '+ this.x +': '+ Math.round(this.y * 10)/10 +'ppm';
+						}
+					},
+					plotOptions: {
+						area: {
+							fillOpacity: 0.5
+						}
+					},
+					series: [{
+						name: 'no uptake',
+						data: [". join(', ', @uptake_0) ."]
+					}, {
+						name: '25% uptake',
+						data: [". join(', ', @uptake_25) ."]
+					}, {
+						name: '50% uptake',
+						data: [". join(', ', @uptake_50) ."]
+					}, {
+						name: '75% uptake',
+						data: [". join(', ', @uptake_75) ."]
+					}, {
+						name: '". $uptake_known_legend. " uptake',
+						data: [". join(', ', @uptake_known) ."]
+					}]
+				});
+				
+				
+			});
+				
+		</script>";
+print '
+</script>
+<div id="fancy"  style="width: 80%; height: 400px">
+</div>';
+			}
+			
 
 # and create a csv of it
-			 open (CSV, ">", "images/con_v_time.$image.csv") or die $!;
+			open (CSV, ">", "images/con_v_time.$image.csv") or die $!;
 # CSV header
                         print CSV "day,no_uptake,25%_uptake,50%_uptake,75%_uptake," . $uptake_known_legend . "_uptake,dose_ppm,food_ppm,pwc%\n";
 
@@ -631,8 +785,7 @@ if ($ENV{'REQUEST_METHOD'} eq 'GET') {
                         }
 
                         close CSV;
-		}
-		print "<img src='images/con_v_time.$image.png'><br />\n";
+#		}
 
 # Are we pushing it into a CSV, too?
 		if ($csv =~ /true/)
@@ -672,7 +825,7 @@ Loading...
 	print $q->start_multipart_form( -id=>'eiform', -action=>'con_v_time.pl' );
 
 	print "<div id='accordion'>
-	<h4><a href='#'>Required</a></h4>
+	<h4><a href='#'  onclick=\"_gaq.push(['_trackPageview', '/ei_required']);\">Required</a></h4>
 	<div>
 	I am adding ";
 	print $q->textfield( -name=>'dose',-size=>5,-maxlength=>5,-default=>"$dose" );
@@ -682,15 +835,22 @@ Loading...
 	print "<br />\n";
         print "and I'll change ";
 	print $q->textfield( -name=>'pwc',-size=>4,-maxlength=>4 );
-	print " % of the water every ";
-	print $q->popup_menu( -name=>'pwc_freq', -values=>['day','week','two weeks','month'], -default=>'week');#, -labels=>['week.','two weeks.','month.']);
+	print " % of the water ";
+	print $q->popup_menu( -name=>'pwc_freq', -values=>['every day','twice a week','three times a week','every week','every two weeks','every month'], -default=>'every week');#, -labels=>['week.','two weeks.','month.']);
 	print "<br />\n";
 	print "<br />\n";
 	print "How much $stuff would I have every day for the next ";
 	print $q->popup_menu( -name=>'length', -values=>['month','three months','six months','year'], -default=>'three months');
-	print "?\n
+	print "?\n";
+	print "<br />\n";
+	print "<br />\n";
+	print "Give me a ";
+	print $q->radio_group( -name=>'graphstyle', -values=>['fancy','simple'], -default=>'fancy');
+	print " chart";
+	print "<br />\n";
+	print "<br />\n
 	</div>
-	<h4><a href='#'>Optional</a></h4>
+	<h4><a href='#'  onclick=\"_gaq.push(['_trackPageview', '/ei_optional']);\">Optional</a></h4>
 	<div>";
 	if ($login)
 	{
@@ -723,7 +883,7 @@ Loading...
 	print $q->radio_group( -name=>'food_units', values=>['%','mg/kg'], -default=>'%');
 	print " $stuff.";
 	print "</div>
-	<h4><a href='#'>Hey, nerd</a></h4>
+	<h4><a href='#'  onclick=\"_gaq.push(['_trackPageview', '/ei_nerd']);\">Hey, nerd</a></h4>
 	<div>";
 
 #	print "-------<br />\n";
@@ -746,7 +906,7 @@ Loading...
 	<br />
 	</div>
 	</div>';
-	print $q->submit( -name=>'Action',-value=>'Graph me!',-id=>'graphbutton' );
+	print $q->submit( -name=>'Action',-value=>'Graph me!',-id=>'graphbutton', -onclick=>"_gaq.push(['_trackPageview', '/ei_submit']);" );
 	print '
 	<br />
 	<br />
