@@ -57,7 +57,9 @@ if ($ENV{'REQUEST_METHOD'} eq 'GET') {
 <script type="text/javascript" src="http://cdn.petalphile.com/javascript/jquery-1.4.4.min.js"></script>
 <script type="text/javascript" src="http://cdn.petalphile.com/javascript/jquery.form.js"></script>
 <script type="text/javascript" src="http://cdn.petalphile.com/javascript/jquery-ui.min.js"></script>
-<script type="text/javascript" src="http://cdn.petalphile.com/javascript/con_v_time.js"></script>';
+<script type="text/javascript" src="http://ei.petalphile.com/javascript/con_v_time.js"></script>
+<meta name="google-site-verification" content="mRmJs36lfQgLiQL09slVLG65uD4PFIMTcxUXog8q1r4" />';
+print "<link href='css/formy_ei.css' rel='stylesheet' type='text/css' />\n";
  print '<script type="text/javascript">';
  print "
   var _gaq = _gaq || [];
@@ -89,7 +91,8 @@ if ($ENV{'REQUEST_METHOD'} eq 'GET') {
 #		print "<a href='login.pl'>login/register</a> to save your graphs!";
 	}
 #	print "</font></p>\n";
-		
+	print "<h3>Concentrations of $stuff vs Time and Plant Uptake using The Estimative Index</h3>\n";		
+	print "<p>model the long term effects of fertilizing your aquarium</p>\n";
         &printForm($q);
         print $q->end_html;
 
@@ -686,7 +689,7 @@ if ($ENV{'REQUEST_METHOD'} eq 'GET') {
 			else
 			{
 				print "<script src='http://ajax.googleapis.com/ajax/libs/jquery/1.6.1/jquery.min.js' type='text/javascript'></script>
-				<script src='/js/highcharts.js' type='text/javascript'></script>\n";
+				<script src='js/highcharts.js' type='text/javascript'></script>\n";
 			print "
 			<script type='text/javascript'>
 			var chart;
@@ -698,10 +701,10 @@ if ($ENV{'REQUEST_METHOD'} eq 'GET') {
 						zoomType: 'xy'
 					},
 					credits: {
-						enabled: false,
+						enabled: false
 					},
 					exporting: {
-						enabled: false,
+						enabled: false
 					},
 					title: {
 						text: \'Concentrations of ". $stuff ." v time and plant uptake using The Estimative Index\'
@@ -712,7 +715,7 @@ if ($ENV{'REQUEST_METHOD'} eq 'GET') {
 							right: '15em',
 							top: '20px'
 						},
-						text: 'hover for values, click and drag the chart to zoom, click uptake values at the bottom to add or remove elements',
+						text: 'hover for values, click and drag the chart to zoom, click uptake values at the bottom to add or remove elements'
 					},
 					xAxis: {
 						title: {
@@ -722,7 +725,7 @@ if ($ENV{'REQUEST_METHOD'} eq 'GET') {
 						categories: [
 							". join(', ', @days) ."
 						],
-						tickInterval: 7,
+						tickInterval: 7
 					},
 					yAxis: {
 						title: {
@@ -733,7 +736,7 @@ if ($ENV{'REQUEST_METHOD'} eq 'GET') {
 							formatter: function() {
 								return this.value;
 							}
-						},
+						}
 					},
 					tooltip: {
 						formatter: function() {
@@ -906,11 +909,11 @@ Loading...
 	<br />
 	</div>
 	</div>';
-	print $q->submit( -name=>'Action',-value=>'Graph me!',-id=>'graphbutton', -onclick=>"_gaq.push(['_trackPageview', '/ei_submit']);" );
+	print $q->submit( -name=>'Action',-value=>'Gimmie!',-id=>'graphbutton', -onclick=>"_gaq.push(['_trackPageview', '/ei_submit']);" );
 	print '
 	<br />
 	<br />
-	<p>Having trouble calculating Stuff?  Check <a href="http://calc.petalphile.com" target="_blank">this</a> out.</p>
+	<h4><a href="http://calc.petalphile.com" target="_blank">Looking for an aquarium fertilizer and dosing calculator?</h4></p>
 	<br />';
 
 
