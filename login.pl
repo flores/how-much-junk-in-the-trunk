@@ -66,10 +66,7 @@ undef($authenticate);
 
 print $q->header;
 print "<center>
-	$err
-	<p>
-	Log in or create an account to save stuff about Stuff.
-	</p>";
+	$err";
 print '
 	<form method="post">
 	username: <input type="text" name="login" length=12 maxlength=12>

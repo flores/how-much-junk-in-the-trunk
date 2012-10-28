@@ -54,27 +54,30 @@ if ($ENV{'REQUEST_METHOD'} eq 'GET') {
 
 	
 	print '<html><head>
-<script type="text/javascript" src="http://cdn.petalphile.com/javascript/jquery-1.4.4.min.js"></script>
-<script type="text/javascript" src="http://cdn.petalphile.com/javascript/jquery.form.js"></script>
-<script type="text/javascript" src="http://cdn.petalphile.com/javascript/jquery-ui.min.js"></script>
-<script type="text/javascript" src="http://ei.petalphile.com/javascript/con_v_time.js"></script>
-<meta name="google-site-verification" content="mRmJs36lfQgLiQL09slVLG65uD4PFIMTcxUXog8q1r4" />';
-print "<link href='css/formy_ei.css' rel='stylesheet' type='text/css' />\n";
- print '<script type="text/javascript">';
- print "
-  var _gaq = _gaq || [];
-  _gaq.push(['_setAccount', 'UA-25702552-1']);
-  _gaq.push(['_setDomainName', 'petalphile.com']);
-  _gaq.push(['_setAllowHash', false]);
-  _gaq.push(['_trackPageview']);
+<script src="http://code.jquery.com/jquery-1.8.2.min.js" type="text/javascript"></script>
+<script src="http://malsup.github.com/jquery.form.js"></script>
+<script src="/bootstrap/js/bootstrap.js" type="text/javascript"></script>
+<link href="/bootstrap/css/bootstrap.css" rel="stylesheet" type="text/css" />
+<link href="/bootstrap/css/bootstrap-responsive.css" rel="stylesheet" type="text/css" />
+<script src="/bootstrap/js/bootstrap-collapse.js">
+<script src="/bootstrap/js/bootstrap-transition.js">
+<script src="http://cdn.petalphile.com/js/ga.js">
+';
+print "
+<script type='text/javascript'>
+var options={ 
+	target: '#result',
+	success: function(){
+		return false; 
+	},
+	error: function(xhr){
+		\$('#result').html(xhr.responseText);
+	}
+};
 
-  (function() {
-    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
-    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
-    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
-  })();
-
-</script>";
+\$('#eiform').ajaxForm(options);
+</script>
+";
 
 	print "<title>Concentrations of $stuff vs Time and Plant Uptake using The Estimative Index</title>\n";
 	
@@ -91,8 +94,7 @@ print "<link href='css/formy_ei.css' rel='stylesheet' type='text/css' />\n";
 #		print "<a href='login.pl'>login/register</a> to save your graphs!";
 	}
 #	print "</font></p>\n";
-	print "<h3>Concentrations of $stuff vs Time and Plant Uptake using The Estimative Index</h3>\n";		
-	print "<p>model the long term effects of fertilizing your aquarium</p>\n";
+# alpha marker
         &printForm($q);
         print $q->end_html;
 
@@ -119,7 +121,7 @@ print "<link href='css/formy_ei.css' rel='stylesheet' type='text/css' />\n";
 	my $csv=$q->param('CSV');
 	my $regress=$q->param('regress');
 	my $save=$q->param('save');
-	my $graphstyle=$q->param('graphstyle');
+	my $graphstyle='fancy';
 
 #	$graphstyle = 'simple';
 	
@@ -688,34 +690,26 @@ print "<link href='css/formy_ei.css' rel='stylesheet' type='text/css' />\n";
 			}
 			else
 			{
-				print "<script src='http://ajax.googleapis.com/ajax/libs/jquery/1.6.1/jquery.min.js' type='text/javascript'></script>
-				<script src='js/highcharts.js' type='text/javascript'></script>\n";
 			print "
 			<script type='text/javascript'>
 			var chart;
 			\$(document).ready(function() {
 				chart = new Highcharts.Chart({
 					chart: {
+						
 						renderTo: 'fancy',
-						defaultSeriesType: 'area',
+						defaultSeriesType: 'areaspline',
 						zoomType: 'xy'
 					},
-					credits: {
-						enabled: false
-					},
-					exporting: {
-						enabled: false
-					},
 					title: {
-						text: \'Concentrations of ". $stuff ." v time and plant uptake using The Estimative Index\'
+						text: ''
 					},
 					subtitle: {
 						style: {
-							position: 'absolute',
 							right: '15em',
 							top: '20px'
 						},
-						text: 'hover for values, click and drag the chart to zoom, click uptake values at the bottom to add or remove elements'
+						text: ''
 					},
 					xAxis: {
 						title: {
@@ -729,7 +723,7 @@ print "<link href='css/formy_ei.css' rel='stylesheet' type='text/css' />\n";
 					},
 					yAxis: {
 						title: {
-							text: 'ppm Stuff',
+							text: \'ppm $stuff\',
 							align: 'low'
 						},
 						labels: {
@@ -740,7 +734,7 @@ print "<link href='css/formy_ei.css' rel='stylesheet' type='text/css' />\n";
 					},
 					tooltip: {
 						formatter: function() {
-				                return 'day '+ this.x +': '+ Math.round(this.y * 10)/10 +'ppm';
+				                return this.series.name + ', day '+ this.x +': '+ Math.round(this.y * 10)/10 +'ppm';
 						}
 					},
 					plotOptions: {
@@ -749,7 +743,7 @@ print "<link href='css/formy_ei.css' rel='stylesheet' type='text/css' />\n";
 						}
 					},
 					series: [{
-						name: 'no uptake',
+						name: 'no plant uptake',
 						data: [". join(', ', @uptake_0) ."]
 					}, {
 						name: '25% uptake',
@@ -763,17 +757,26 @@ print "<link href='css/formy_ei.css' rel='stylesheet' type='text/css' />\n";
 					}, {
 						name: '". $uptake_known_legend. " uptake',
 						data: [". join(', ', @uptake_known) ."]
-					}]
+					}],
+					plotOptions: {
+						series: {
+							animation: {
+								duration: 1000
+							}
+						}
+					},
+					credits: {
+						enabled: false
+					},
+					exporting: {
+						enabled: false
+					}
 				});
 				
 				
 			});
 				
 		</script>";
-print '
-</script>
-<div id="fancy"  style="width: 80%; height: 400px">
-</div>';
 			}
 			
 
@@ -816,106 +819,224 @@ print '
  sub printForm {
 
 	my ($q,$val)=@_;
-	
-	print "\n<center>\n";
-	
-	print "<div id='result'>
-</div>\n
-<div id='loading' style='display: none;'>  
-<img src='ajax-loader.gif'/><br />
-Loading...
-</div>";
-	print $q->start_multipart_form( -id=>'eiform', -action=>'con_v_time.pl' );
-
-	print "<div id='accordion'>
-	<h4><a href='#'  onclick=\"_gaq.push(['_trackPageview', '/ei_required']);\">Required</a></h4>
-	<div>
-	I am adding ";
-	print $q->textfield( -name=>'dose',-size=>5,-maxlength=>5,-default=>"$dose" );
-	print " ppm of $stuff ";
-	print $q->popup_menu( -name=>'dose_freq', -values=>['1','2','3','4','7'], -default=>'3');#, -labels=>['week','two weeks','month']);
-	print "times a week";
-	print "<br />\n";
-        print "and I'll change ";
-	print $q->textfield( -name=>'pwc',-size=>4,-maxlength=>4 );
-	print " % of the water ";
-	print $q->popup_menu( -name=>'pwc_freq', -values=>['every day','twice a week','three times a week','every week','every two weeks','every month'], -default=>'every week');#, -labels=>['week.','two weeks.','month.']);
-	print "<br />\n";
-	print "<br />\n";
-	print "How much $stuff would I have every day for the next ";
-	print $q->popup_menu( -name=>'length', -values=>['month','three months','six months','year'], -default=>'three months');
-	print "?\n";
-	print "<br />\n";
-	print "<br />\n";
-	print "Give me a ";
-	print $q->radio_group( -name=>'graphstyle', -values=>['fancy','simple'], -default=>'fancy');
-	print " chart";
-	print "<br />\n";
-	print "<br />\n
-	</div>
-	<h4><a href='#'  onclick=\"_gaq.push(['_trackPageview', '/ei_optional']);\">Optional</a></h4>
-	<div>";
-	if ($login)
-	{
-        	print 'Add to my <input type="checkbox" name="save">saved graphs.<br />';
-	}
-	print "Calculate for ";
-	print $q->textfield( -name=>'known_uptake',-size=>5,-maxlength=>4 );
-	print $q->radio_group( -name=>'known_uptake_units', values=>['%','ppm'], -default=>'%');
-	print " weekly uptake.<br />";
-	print "-------<br />\n";
-	print "I am starting with ";
-	print $q->textfield( -name=>'initial',-size=>5,-maxlength=>4 );
-	print " ppm $stuff after a waterchange<br />\n";
-	print "-------<br />\n";
-	print "Instead of my regular dose add ";
-        print $q->textfield( -name=>'dose_pwc',-size=>5,-maxlength=>4 );
-        print " ppm of $stuff at waterchange.<br />\n";
-	print "-------<br />\n";
-	print "My tap has ";
-        print $q->textfield( -name=>'tap_conc',-size=>5,-maxlength=>4 );
-        print " ppm $stuff.   <br />\n";
-	print "-------<br />\n";
-        print "I feed ";
-        print $q->textfield( -name=>'food_mg',-size=>5,-maxlength=>5 );
-        print " mg of food a week\n into my ";
-        print $q->textfield( -name=>'tank',-size=>6,-maxlength=>4 );
-        print $q->radio_group( -name=>'tank_units', values=>['gal','L'], -default=>'gal'); #  " gallons<br /><br />";
-	print " tank.\n This food is ";
-        print $q->textfield( -name=>'food_conc',-size=>4,-maxlength=>4 );
-	print $q->radio_group( -name=>'food_units', values=>['%','mg/kg'], -default=>'%');
-	print " $stuff.";
-	print "</div>
-	<h4><a href='#'  onclick=\"_gaq.push(['_trackPageview', '/ei_nerd']);\">Hey, nerd</a></h4>
-	<div>";
-
-#	print "-------<br />\n";
-#	print "Set the maximum ppm limit as ";
-#	print $q->popup_menu( -name=>'y_max', -values=>['10','25','50','75','100','150','200','250','300','350'] -default=>'0');
-#	print " ppm.<br />\n";
-
-# and the csv and regression stuff, too..
 	print '
-        Regress data into a
-        <input type="checkbox" name="regress" value="true">
-         best fit line instead.
-        <br />
-        --------
-        <br />
-        Give me
-        <input type="checkbox" name="CSV" value="true">
-        CSV, too, foo.
-	<br />
-	<br />
-	</div>
-	</div>';
-	print $q->submit( -name=>'Action',-value=>'Gimmie!',-id=>'graphbutton', -onclick=>"_gaq.push(['_trackPageview', '/ei_submit']);" );
-	print '
-	<br />
-	<br />
-	<h4><a href="http://calc.petalphile.com" target="_blank">Looking for an aquarium fertilizer and dosing calculator?</h4></p>
-	<br />';
+    <div class="navbar">
+      <div class="navbar-inner">
+        <button type="button"class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </button>
+        <a class="brand" href="/">rota.la</a>
+        <div class="nav-collapse collapse">
+          <ul class="nav">
+            <li class="active">
+              <a href="/ei">the accumulation of fertilizers vs time and plant uptake</a>
+            </li>
+            <li class="">
+              <a href="/">nutrient calc</a>
+            </li>
+            <li class="">
+              <a href="http://dropcheck.petalphile.com">drop checkers</a>
+            </li>
+            <li class="">
+              <a href="http://glut.petalphile.com">glutaladehyde converter</a>
+            </li>
+            <li class="">
+              <a href="http://y.petalphile.com">wiki</a>
+            </li>
+            <li class="">
+              <a href="http://petalphile.com">about</a>
+            </li>
+            <li class="">
+              <a href="http://y.petalphile.com">contact</a>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+';
 
+
+
+	
+#	print "<div id='result'>
+#</div>\n
+#<div id='loading' style='display: none;'>  
+#<img src='ajax-loader.gif'/><br />
+#Loading...
+#</div>";
+	print "
+    
+<div class='container-fluid'>
+  <div class='row'>
+    <div class='offset1 span5'>
+      <form id='eiform' action='/ei/' method='post' class='form-horizontal' onsubmit='return false;'>
+				<div class='accordion' id='accordion'>
+	  			<div class='accordion-group'>
+	    			<div class='accordion-heading'>
+	      			<a class='accordion-toggle' data-toggle='collapse' data-parent='#accordion' href='#required'>
+                Required
+              </a>
+	    			</div>
+	    			<div class='accordion-body collapse in' id='required'>
+              <div class='control-group'>
+                <label class='control-label' for='dose'>Each dose of $stuff is</label>
+                <div class='controls'>
+                  <input name='dose' type='text' id='dose' default='$dose'/>
+										ppm
+                </div>
+              </div>
+              <div class='control-group'>
+                <label class='control-label' for='dose_freq'>Doses per week</label>
+                <div class='controls'>
+                  <select name='dose_freq' id='dose_freq'>
+										<option value='1'>daily</option>
+										<option value='2'>twice a week</option>
+										<option value='3' selected='selected'>every other day</option>
+										<option value='7'>weekly</option>
+									</select>
+                </div>
+              </div>
+              <div class='control-group'>
+                <label class='control-label' for='pwc'>Each water change is</label>
+                <div class='controls'>
+                  <input name='pwc' type='text' id='pwc' default='50'/>
+										%
+                </div>
+              </div>
+              <div class='control-group'>
+                <label class='control-label' for='pwc_freq'>Water change schedule</label>
+                <div class='controls'>
+                  <select name='pwc_freq' id='dose_freq'>
+										<option value='every day'>daily</option>
+										<option value='twice a week'>twice a week</option>
+										<option value='every week' selected='selected'>weekly</option>
+										<option value='every month'>monthly</option>
+									</select>
+                </div>
+              </div>
+              <div class='control-group'>
+                <label class='control-label' for='length'>Project the next</label>
+                <div class='controls'>
+                  <select name='length' id='length'>
+										<option value='month'>month</option>
+										<option value='three months' selected='selected'>three months</option>
+										<option value='six months'>six months</option>
+										<option value='year'>year</option>
+									</select>
+                </div>
+              </div>
+						</div>
+	  			<div class='accordion-group'>
+	    			<div class='accordion-heading'>
+	      			<a class='accordion-toggle' data-toggle='collapse' data-parent='#accordion' href='#optional'>
+                Optional
+              </a>
+	    			</div>
+	    			<div class='accordion-body collapse' id='optional'>
+              <div class='control-group'>
+                <label class='control-label' for='known_uptake'>Calculate for known uptake of</label>
+                <div class='controls'>
+                  <input name='known_uptake' type='text' id='known_uptake'/>
+									<label class='radio'>
+									  <input name='known_uptake_units' type='radio' value='%' id='known_uptake_units'>
+	  								  %
+									</label> 
+									<label class='radio'>
+        					  <input name='known_uptake_units' type='radio' value='ppm' id='known_uptake_units'>
+	  								  ppm
+        					</label>								
+                </div>
+              </div>
+              <div class='control-group'>
+                <label class='control-label' for='initial'>Start with known ppm of $stuff</label>
+                <div class='controls'>
+                  <input name='initial' type='text' id='initial'/>
+										ppm
+								</div>
+							</div>
+              <div class='control-group'>
+                <label class='control-label' for='dose_pwc'>Change dose immediately following water change</label>
+                <div class='controls'>
+                  <input name='dose_pwc' type='text' id='dose_pwc'/>
+										ppm
+								</div>
+							</div>
+              <div class='control-group'>
+                <label class='control-label' for='tap_conc'>Tap/waterchange water has known concentration of $stuff</label>
+                <div class='controls'>
+                  <input name='tap_conc' type='text' id='tap_conc'/>
+										ppm
+								</div>
+							</div>
+              <div class='control-group'>
+                <label class='control-label' for='food_mg'>Calculate for food added</label>
+                <div class='controls'>
+                  <input name='food_mg' type='text' id='food_mg'/>
+                    mg food per week
+									<label class='control-label' for='tank'>tank size</label>
+                    <input name='tank' type='text' id='food_mg'/>
+									<label class='radio'>
+									  <input name='tank_units' type='radio' value='gal' id='tank_units'>
+	  								  gal
+									</label> 
+									<label class='radio'>
+        					  <input name='tank_units' type='radio' value='L' id='tank_units'>
+	  								  L
+        					</label>								
+                  <label class='control-label' for='food_conc'>This food's concentration of $stuff</label>
+                    <input name='food_conc' type='text' id='food_conc'/>
+									
+									  <input name='' type='radio' value='%' id='tank_units'>
+	  								  %
+									<label class='radio'>
+									  <input name='food_units' type='radio' value='%' id='food_units'>
+	  								  %
+									</label> 
+									<label class='radio'>
+        					  <input name='food_units' type='radio' value='mg/kg' id='food_units'>
+	  								  mg/kg
+        					</label>								
+								</div>
+							</div>	
+						</div>
+	  			<div class='accordion-group'>
+	    			<div class='accordion-heading'>
+	      			<a class='accordion-toggle' data-toggle='collapse' data-parent='#accordion' href='#nerd'>
+                Hey nerd
+              </a>
+	    			</div>
+	    			<div class='accordion-body collapse' id='nerd'>
+              <div class='control-group'>
+								<div class='control'><label>
+        					<input type='checkbox' name='regress' value='true'>  Regress data into a best fit line</label>
+								</div>
+							</div>	
+              <div class='control-group'>
+								<div class='control'>
+        					<input type='checkbox' name='CSV' value='true'>  Make me a CSV too, foo
+								</div>
+							</div>
+						</div>
+					</div>	
+				</div>
+			<input type='submit' name='eiform' value='Chart me!' id='graphbutton'>
+			</form>
+		</div>
+    <div class='offset1 span5'>
+			<div id='result'>
+			<div id='fancy' name='fancy'>
+			</div>
+			</div>
+			<div id='loading' style='display: none;'>  
+				<img src='ajax-loader.gif'/><br />
+				Loading...
+			</div>
+		</div>
+	</div>
+</div>
+";
 
  }
 
